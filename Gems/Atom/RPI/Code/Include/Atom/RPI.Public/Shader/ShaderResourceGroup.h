@@ -11,6 +11,7 @@
 #include <Atom/RPI.Reflect/Shader/ShaderAsset.h>
 #include <Atom/RPI.Reflect/Shader/ShaderVariantKey.h>
 
+#include <Atom/RPI.Public/Configuration.h>
 #include <Atom/RPI.Public/Shader/ShaderResourceGroupPool.h>
 #include <Atom/RPI.Reflect/Image/Image.h>
 #include <Atom/RPI.Public/Buffer/Buffer.h>
@@ -46,9 +47,11 @@ namespace AZ
          * Likewise, if a getter method fails, an error is emitted and an empty value or empty array
          * is returned. If validation is disabled, the operation is always performed.
          */
-        class ShaderResourceGroup final
+        AZ_PUSH_DISABLE_DLL_EXPORT_BASECLASS_WARNING
+        class ATOM_RPI_PUBLIC_API ShaderResourceGroup final
             : public AZ::Data::InstanceData
         {
+            AZ_POP_DISABLE_DLL_EXPORT_BASECLASS_WARNING
             friend class ShaderSystem;
             friend class ShaderResourceGroupPool;
 
@@ -71,6 +74,8 @@ namespace AZ
 
             /// Returns whether the group is currently queued for compilation.
             bool IsQueuedForCompile() const;
+
+            bool IsInitialized() const;
 
             /// Finds the shader input index from the shader input name for each type of resource.
             RHI::ShaderInputBufferIndex    FindShaderInputBufferIndex(const Name& name) const;
@@ -156,7 +161,7 @@ namespace AZ
                 RHI::ShaderInputBufferIndex indirectResourceBufferIndex,
                 const RHI::BufferView* indirectResourceBuffer,
                 AZStd::span<const RHI::ImageView* const> imageViews,
-                uint32_t* outIndices,
+                AZStd::unordered_map<int, uint32_t*> outIndices,
                 AZStd::span<bool> isViewReadOnly,
                 uint32_t arrayIndex = 0);
 
@@ -187,10 +192,10 @@ namespace AZ
                 RHI::ShaderInputBufferIndex indirectResourceBufferIndex,
                 const RHI::BufferView* indirectResourceBuffer,
                 AZStd::span<const RHI::BufferView* const> bufferViews,
-                uint32_t* outIndices,
+                AZStd::unordered_map<int, uint32_t*> outIndices,
                 AZStd::span<bool> isViewReadOnly,
                 uint32_t arrayIndex = 0);
-            
+
             /// Returns a single buffer view associated with the buffer shader input index and array offset.
             const RHI::ConstPtr<RHI::BufferView>& GetBufferView(RHI::ShaderInputNameIndex& inputIndex, uint32_t arrayIndex = 0) const;
             const RHI::ConstPtr<RHI::BufferView>& GetBufferView(RHI::ShaderInputBufferIndex inputIndex, uint32_t arrayIndex = 0) const;
@@ -232,6 +237,14 @@ namespace AZ
             bool SetConstant(RHI::ShaderInputNameIndex& inputIndex, const T& value);
             template <typename T>
             bool SetConstant(RHI::ShaderInputConstantIndex inputIndex, const T& value);
+
+            /// Assign a device-specific value of type T to the constant shader input. Note that the corresponding GetConstant() - function
+            /// returns only the value of one device.
+            template<typename T>
+            bool SetConstant(RHI::ShaderInputNameIndex& inputIndex, const AZStd::unordered_map<int, T>& values);
+
+            template<typename T>
+            bool SetConstant(RHI::ShaderInputConstantIndex& inputIndex, const AZStd::unordered_map<int, T>& values);
 
             /// Assigns the specified number of rows from a Matrix
             template <typename T>
@@ -417,6 +430,22 @@ namespace AZ
             if (inputIndex.ValidateOrFindConstantIndex(GetLayout()))
             {
                 return SetConstant(inputIndex.GetConstantIndex(), value);
+            }
+            return false;
+        }
+
+        template<typename T>
+        bool ShaderResourceGroup::SetConstant(RHI::ShaderInputConstantIndex& inputIndex, const AZStd::unordered_map<int, T>& values)
+        {
+            return m_data.SetConstant(inputIndex, values);
+        }
+
+        template<typename T>
+        bool ShaderResourceGroup::SetConstant(RHI::ShaderInputNameIndex& inputIndex, const AZStd::unordered_map<int, T>& values)
+        {
+            if (inputIndex.ValidateOrFindConstantIndex(GetLayout()))
+            {
+                return SetConstant(inputIndex.GetConstantIndex(), values);
             }
             return false;
         }
