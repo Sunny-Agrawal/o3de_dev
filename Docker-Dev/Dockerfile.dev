@@ -1,0 +1,41 @@
+# Dev Dockerfile for O3DE Engine Development
+# Minimal base setup for UID/GID bind mount compatibility
+
+ARG BASE_IMAGE=ubuntu:22.04
+FROM ${BASE_IMAGE}
+
+# Avoid interactive tzdata prompt
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Create non-root user placeholder
+ARG USERNAME=devuser
+ARG UID=1000
+ARG GID=1000
+
+# Add user and group
+RUN groupadd -g $GID $USERNAME \
+    && useradd -m -u $UID -g $GID -s /bin/bash $USERNAME \
+    && apt-get update \
+    && apt-get install -y \
+        sudo \
+        git \
+        curl \
+        ca-certificates \
+        locales \
+        tzdata \
+        bash \
+        nano \
+        x11-apps \
+    && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
+    && locale-gen en_US.UTF-8
+
+# Set environment and working dir
+ENV LANG en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+WORKDIR /home/$USERNAME
+
+# Copy entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

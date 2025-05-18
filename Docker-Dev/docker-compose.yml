@@ -1,0 +1,16 @@
+services:
+  o3de-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev # This will be your rewritten minimal base
+    image: o3de-dev-env
+    container_name: o3de-dev
+    environment:
+      - UID=${UID}
+      - GID=${GID}
+    volumes:
+      - ../o3de_dev:/home/devuser/o3de  # Mount your engine source
+    working_dir: /home/devuser/o3de
+    stdin_open: true
+    tty: true
+    user: "${UID}:${GID}"
