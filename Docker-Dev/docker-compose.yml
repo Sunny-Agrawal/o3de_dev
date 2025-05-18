@@ -1,5 +1,6 @@
 services:
   o3de-dev:
+    hostname: o3de-dev
     build:
       context: .
       dockerfile: Dockerfile.dev # This will be your rewritten minimal base
@@ -9,8 +10,7 @@ services:
       - UID=${UID}
       - GID=${GID}
     volumes:
-      - ../o3de_dev:/home/devuser/o3de  # Mount your engine source
+      - ../:/home/devuser/o3de  # Mount your engine source
     working_dir: /home/devuser/o3de
     stdin_open: true
     tty: true
-    user: "${UID}:${GID}"

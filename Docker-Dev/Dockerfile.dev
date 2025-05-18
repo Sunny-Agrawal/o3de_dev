@@ -14,7 +14,8 @@ ARG GID=1000
 
 # Add user and group
 RUN groupadd -g $GID $USERNAME \
-    && useradd -m -u $UID -g $GID -s /bin/bash $USERNAME \
+    && useradd -m -u $UID -g $GID -s /bin/zsh $USERNAME \
+    && passwd -d $USERNAME \
     && apt-get update \
     && apt-get install -y \
         sudo \
@@ -24,6 +25,7 @@ RUN groupadd -g $GID $USERNAME \
         locales \
         tzdata \
         bash \
+        zsh \
         nano \
         x11-apps \
     && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
@@ -31,7 +33,7 @@ RUN groupadd -g $GID $USERNAME \
 
 # Set environment and working dir
 ENV LANG en_US.UTF-8
-ENV LC_ALL en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
 WORKDIR /home/$USERNAME
 
 # Copy entrypoint
