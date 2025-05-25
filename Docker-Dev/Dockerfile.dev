@@ -28,8 +28,51 @@ RUN groupadd -g $GID $USERNAME \
         zsh \
         nano \
         x11-apps \
+        clang \
+        lld \
+        cmake-qt-gui \
+        ninja-build \
+        libunwind-dev \
+        libzstd-dev \
+        binutils \
+        libglu1-mesa-dev \
+        libfontconfig1-dev \
+        libxcb-xinerama0 \
+        libxcb-xinerama0-dev \
+        libxcb-xkb-dev \
+        libxcb-randr0 \
+        libxcb-randr0-dev \
+        libxkbcommon-x11-dev \
+        libxkbcommon-dev \
+        libxcb-xfixes0-dev \
+        libxcb-xinput-dev \
+        libxcb-xinput0 \
+        libxcb-icccm4-dev \
+        libxcb-image0-dev \
+        libxcb-keysyms1-dev \
+        libxcb-render-util0-dev \
+        mesa-common-dev \
+        libvulkan1 \
+        libx11-dev \
+        libpcre2-16-0 \
+        libssl-dev \
+        libcurl4-openssl-dev \
+        pkg-config \
+        libxcb-util0-dev \
+        xcb-proto \
+        libc6-dev \
+        zlib1g-dev \
+        libstdc++-12-dev \
+        tix \
+        software-properties-common \
+        gnupg \
+        xxd \
     && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
-    && locale-gen en_US.UTF-8
+    && locale-gen en_US.UTF-8 \
+    && wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null \
+    && add-apt-repository "deb https://apt.kitware.com/ubuntu/ jammy main" \
+    && apt-get update \
+    && apt-get install -y cmake
 
 # Set environment and working dir
 ENV LANG en_US.UTF-8

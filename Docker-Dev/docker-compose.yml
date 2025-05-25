@@ -1,6 +1,7 @@
 services:
   o3de-dev:
     hostname: o3de-dev
+    user: "${UID}:${GID}"
     build:
       context: .
       dockerfile: Dockerfile.dev # This will be your rewritten minimal base
@@ -9,8 +10,11 @@ services:
     environment:
       - UID=${UID}
       - GID=${GID}
+      - O3DE_ROOT=/home/devuser/o3de
     volumes:
-      - ../:/home/devuser/o3de  # Mount your engine source
+      - ../:/home/devuser/o3de  # Mount your engine source. Make sure the mount target matches the O3DE_ROOT environment variable.
+      - ./entrypoint.sh:/entrypoint.sh  # Mount entrypoint for live editing
     working_dir: /home/devuser/o3de
     stdin_open: true
     tty: true
+    entrypoint: ["/entrypoint.sh"]
