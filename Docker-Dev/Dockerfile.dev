@@ -30,7 +30,6 @@ RUN groupadd -g $GID $USERNAME \
         x11-apps \
         clang \
         lld \
-        cmake-qt-gui \
         ninja-build \
         libunwind-dev \
         libzstd-dev \
@@ -69,13 +68,20 @@ RUN groupadd -g $GID $USERNAME \
         xxd \
     && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
     && locale-gen en_US.UTF-8 \
-    && wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null \
-    && add-apt-repository "deb https://apt.kitware.com/ubuntu/ jammy main" \
+    # Manually install CMake 3.28.3 from official Kitware binaries
+    && curl -LO https://github.com/Kitware/CMake/releases/download/v3.28.3/cmake-3.28.3-linux-x86_64.sh \
+    && chmod +x cmake-3.28.3-linux-x86_64.sh \
+    && ./cmake-3.28.3-linux-x86_64.sh --skip-license --prefix=/usr/local \
+    && rm cmake-3.28.3-linux-x86_64.sh \
+    # Add GCC 13 repo
+    && add-apt-repository ppa:ubuntu-toolchain-r/test -y \
     && apt-get update \
-    && apt-get install -y cmake
+    && apt-get install -y gcc-13 g++-13 \
+    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
 
 # Set environment and working dir
-ENV LANG en_US.UTF-8
+ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 WORKDIR /home/$USERNAME
 
