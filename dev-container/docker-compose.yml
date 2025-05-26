@@ -10,11 +10,26 @@ services:
     environment:
       - UID=${UID}
       - GID=${GID}
+      - USERNAME=devuser
       - O3DE_ROOT=/home/devuser/o3de
+      - ROC_ENABLE_PRE_VEGA=1  # Only needed for older AMD cards; safe to leave
+      - DISPLAY=${DISPLAY}
     volumes:
       - ../:/home/devuser/o3de  # Mount your engine source. Make sure the mount target matches the O3DE_ROOT environment variable.
       - ./entrypoint.sh:/entrypoint.sh  # Mount entrypoint for live editing
+      - /tmp/.X11-unix:/tmp/.X11-unix # Give container display access for GUI applications
     working_dir: /home/devuser/o3de
     stdin_open: true
     tty: true
     entrypoint: ["/entrypoint.sh"]
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+    # For NVIDIA support, use the following instead of the AMD-specific block:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: ["gpu"]

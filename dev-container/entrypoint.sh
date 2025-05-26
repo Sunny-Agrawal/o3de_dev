@@ -1,19 +1,48 @@
 #!/bin/bash
 
-# Map UID/GID from environment or fallback
-: "${UID:=1000}"
-: "${GID:=1000}"
-: "${USERNAME:=devuser}"
-
-export UID GID USERNAME
-
 echo "[entrypoint] Using UID=$UID GID=$GID USERNAME=$USERNAME"
 
-# Commented out XDG setup for headless build-only usage
-# mkdir -p /run/user/$UID
-# chmod 7700 /run/user/$UID
-# export XDG_RUNTIME_DIR=/run/user/$UID
-# echo "[entrypoint] Set XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR"
+# Detect GPU vendor for runtime config
+echo "[entrypoint] Detecting GPU vendor..."
+GPU_VENDOR="${GPU_VENDOR:-auto}"
+
+if [ "$GPU_VENDOR" = "auto" ]; then
+  GPU_DESC="$(lspci | grep -i 'VGA\|3D\|Display')"
+
+  if echo "$GPU_DESC" | grep -qi nvidia; then
+    GPU_VENDOR="nvidia"
+  elif echo "$GPU_DESC" | grep -qi amd; then
+    GPU_VENDOR="amd"
+  elif echo "$GPU_DESC" | grep -qi intel; then
+    GPU_VENDOR="intel"
+  else
+    GPU_VENDOR="none"
+  fi
+fi
+
+echo "[entrypoint] Detected GPU vendor: $GPU_VENDOR"
+
+# Vendor-specific runtime environment setup
+case "$GPU_VENDOR" in
+  nvidia)
+    export NVIDIA_VISIBLE_DEVICES=all
+    export NVIDIA_DRIVER_CAPABILITIES=all
+    echo "[entrypoint] NVIDIA runtime variables configured."
+    ;;
+  amd)
+    export ROC_ENABLE_PRE_VEGA=1
+    echo "[entrypoint] ROCm runtime variable configured."
+    ;;
+  *)
+    echo "[entrypoint] No supported GPU vendor detected or required."
+    ;;
+esac
+
+# Ensure current user is added to the video group for GPU access
+if ! id "$USERNAME" | grep -q "video"; then
+  echo "[entrypoint] Adding $USERNAME to video group..."
+  usermod -aG video "$USERNAME"
+fi
 
 # Start an interactive shell directly
 exec bash
