@@ -38,11 +38,12 @@ case "$GPU_VENDOR" in
     ;;
 esac
 
-# Ensure current user is added to the video group for GPU access
-if ! id "$USERNAME" | grep -q "video"; then
-  echo "[entrypoint] Adding $USERNAME to video group..."
-  usermod -aG video "$USERNAME"
-fi
+# Note: Video group membership is handled by docker-compose group_add
+# for AMD/Intel. NVIDIA uses nvidia-container-toolkit which doesn't need it.
 
-# Start an interactive shell directly
-exec bash
+# Execute the command passed to the container, or start an interactive shell
+if [ $# -gt 0 ]; then
+  exec "$@"
+else
+  exec bash
+fi

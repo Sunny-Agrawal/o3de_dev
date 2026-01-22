@@ -9,15 +9,15 @@ This directory provides a **hardware-agnostic development container** for O3DE (
 3. **Simplifies developer workflow** - docker-compose for easy startup
 4. **Enables both building AND running** O3DE in the container
 
-## Current State (as of 2025-05)
+## Current State (as of 2026-01)
 
 - Full build toolchain (GCC 13, Clang, CMake 3.28.3, Ninja)
-- GPU auto-detection in entrypoint.sh (NVIDIA/AMD/Intel)
+- GPU auto-detection via `lspci` (NVIDIA/AMD/Intel)
+- Docker Compose profiles for vendor-specific GPU passthrough
+- `run-container.sh` - Single-command startup with auto-detection
 - `build-engine.sh` - Automated engine build script
-- `run-container.sh` - Helper with X11 access management
-- `.env` - UID/GID defaults
-- Confirmed working: AMD GPU runtime
-- Needs testing: NVIDIA GPU runtime
+- Confirmed working: AMD GPU runtime, NVIDIA GPU runtime
+- Needs testing: Intel integrated graphics
 
 ## Vendor Neutrality Assessment
 
@@ -29,13 +29,18 @@ This directory provides a **hardware-agnostic development container** for O3DE (
 | Graphics libs | Neutral | Vulkan, Mesa - work with any GPU |
 | Build toolchain | Neutral | Standard GCC/Clang, no GPU-specific compilers |
 
-### What is NOT vendor-neutral:
-| Component | Issue | Fix Needed |
-|-----------|-------|------------|
-| docker-compose.yml | AMD devices hardcoded (`/dev/kfd`, `/dev/dri`) | Need conditional or multiple compose files |
-| docker-compose.yml | NVIDIA section commented out | Need unified approach |
-| Runtime invocation | Different docker flags per vendor | Need wrapper script or compose profiles |
-| Architecture | x86_64 only (CMake binary) | Need ARM64 support |
+### Vendor-neutral implementation:
+| Component | Approach |
+|-----------|----------|
+| docker-compose.yml | YAML anchors for shared config + profiles (`nvidia`, `amd`, `intel`) |
+| run-container.sh | Auto-detects GPU via `lspci`, selects correct profile |
+| Manual override | `./run-container.sh --profile nvidia` to force a specific vendor |
+
+### Remaining limitations:
+| Component | Issue |
+|-----------|-------|
+| Architecture | x86_64 only (CMake binary hardcoded) |
+| Display server | X11 only (no Wayland support yet) |
 
 ### GPU Vendor Requirements:
 | Vendor | Host Requirements | Container Devices | Env Vars |
@@ -70,15 +75,42 @@ Container
 └── entrypoint.sh (GPU detection, user setup)
 ```
 
-## Usage (target workflow)
+## Prerequisites
+
+| GPU Vendor | Host Requirements |
+|------------|-------------------|
+| NVIDIA | `nvidia-driver-xxx`, `nvidia-container-toolkit` |
+| AMD | AMDGPU driver (usually included in kernel), `/dev/kfd` and `/dev/dri` accessible |
+| Intel | i915 driver (included in kernel), `/dev/dri` accessible |
+
+All vendors require:
+- Docker Engine
+- User in `docker` group (`sudo usermod -aG docker $USER`, then logout/login)
+
+## Usage
 
 ```bash
 # From dev-container directory
-./run-container.sh          # Auto-detects GPU, launches container
+cd dev-container
+
+# Auto-detect GPU and launch container
+./run-container.sh
+
+# Or manually specify GPU vendor
+./run-container.sh --profile nvidia
+./run-container.sh --profile amd
+./run-container.sh --profile intel
 
 # Inside container
-./build-engine.sh           # Build the engine
-./build/linux/bin/profile/Editor  # Run the editor (once built)
+./dev-container/build-engine.sh    # Build the engine
+./build/linux/bin/profile/Editor   # Run the editor (once built)
+```
+
+### First-time setup
+
+```bash
+# Build the container image (only needed once, or after Dockerfile changes)
+docker compose --profile nvidia build   # or amd/intel
 ```
 
 ## Comparison with Main Repo /Docker/
@@ -93,24 +125,24 @@ Container
 
 ## Known Issues / TODO
 
-- [ ] Unify docker-compose.yml for all GPU vendors (use profiles or detection script)
-- [ ] Test NVIDIA runtime path end-to-end
+- [x] Unify docker-compose.yml for all GPU vendors (use profiles or detection script)
+- [x] Test NVIDIA runtime path end-to-end
+- [x] Document host prerequisites per GPU vendor
 - [ ] Test Intel integrated graphics
 - [ ] Add ARM64 support (would need different CMake install)
 - [ ] Consider Wayland support (currently X11 only)
 - [ ] Add VS Code devcontainer.json for IDE integration
-- [ ] Document host prerequisites per GPU vendor
 
 ## Files Reference
 
 | File | Purpose |
 |------|---------|
-| `Dockerfile.dev` | Container image definition |
-| `docker-compose.yml` | Service orchestration |
-| `entrypoint.sh` | Container init (GPU detect, user setup) |
+| `Dockerfile.dev` | Container image definition (Ubuntu 22.04 + build tools) |
+| `docker-compose.yml` | Service orchestration with GPU vendor profiles |
+| `entrypoint.sh` | Container init (GPU detection, env setup) |
+| `run-container.sh` | Main entry point - auto-detects GPU, manages X11 access |
 | `build-engine.sh` | O3DE build automation |
-| `run-container.sh` | Container launch with X11 setup |
-| `.env` | Default UID/GID values |
+| `.env` | Default UID/GID values (optional, run-container.sh auto-detects) |
 
 ## Session Notes
 
@@ -125,5 +157,8 @@ _Use this section to track progress across work sessions._
 
 ### 2026-01: Resuming development
 - Merged upstream changes
-- Assessing vendor neutrality
-- Planning path to true hardware-agnostic solution
+- Assessed vendor neutrality gaps
+- Implemented Docker Compose profiles for NVIDIA/AMD/Intel
+- Added GPU auto-detection to `run-container.sh`
+- Tested and confirmed NVIDIA GPU passthrough working (RTX 4070)
+- Simplified `entrypoint.sh` (removed usermod, compose handles groups)

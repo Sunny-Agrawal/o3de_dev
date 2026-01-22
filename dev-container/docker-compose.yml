@@ -1,35 +1,85 @@
+# GPU-vendor-neutral docker-compose with profiles
+# Usage: docker compose --profile <nvidia|amd|intel> run --rm o3de-dev
+# Or use run-container.sh for auto-detection
+
+x-common: &common
+  hostname: o3de-dev
+  user: "${UID}:${GID}"
+  build:
+    context: .
+    dockerfile: Dockerfile.dev
+  image: o3de-dev-env
+  environment:
+    - UID=${UID}
+    - GID=${GID}
+    - USERNAME=devuser
+    - O3DE_ROOT=/home/devuser/o3de
+    - DISPLAY=${DISPLAY}
+    - GPU_VENDOR=${GPU_VENDOR:-auto}
+  volumes:
+    - ../:/home/devuser/o3de
+    - ./entrypoint.sh:/entrypoint.sh
+    - /tmp/.X11-unix:/tmp/.X11-unix
+  working_dir: /home/devuser/o3de
+  stdin_open: true
+  tty: true
+  entrypoint: ["/entrypoint.sh"]
+
 services:
+  # NVIDIA GPU profile
   o3de-dev:
-    hostname: o3de-dev
-    user: "${UID}:${GID}"
-    build:
-      context: .
-      dockerfile: Dockerfile.dev # This will be your rewritten minimal base
-    image: o3de-dev-env
+    <<: *common
+    profiles: ["nvidia"]
+    environment:
+      - UID=${UID}
+      - GID=${GID}
+      - USERNAME=devuser
+      - O3DE_ROOT=/home/devuser/o3de
+      - DISPLAY=${DISPLAY}
+      - GPU_VENDOR=nvidia
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # AMD GPU profile
+  o3de-dev-amd:
+    <<: *common
+    profiles: ["amd"]
     container_name: o3de-dev
     environment:
       - UID=${UID}
       - GID=${GID}
       - USERNAME=devuser
       - O3DE_ROOT=/home/devuser/o3de
-      - ROC_ENABLE_PRE_VEGA=1  # Only needed for older AMD cards; safe to leave
       - DISPLAY=${DISPLAY}
-    volumes:
-      - ../:/home/devuser/o3de  # Mount your engine source. Make sure the mount target matches the O3DE_ROOT environment variable.
-      - ./entrypoint.sh:/entrypoint.sh  # Mount entrypoint for live editing
-      - /tmp/.X11-unix:/tmp/.X11-unix # Give container display access for GUI applications
-    working_dir: /home/devuser/o3de
-    stdin_open: true
-    tty: true
-    entrypoint: ["/entrypoint.sh"]
+      - GPU_VENDOR=amd
+      - ROC_ENABLE_PRE_VEGA=1
     devices:
       - /dev/kfd
       - /dev/dri
     group_add:
       - video
-    # For NVIDIA support, use the following instead of the AMD-specific block:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - capabilities: ["gpu"]
+
+  # Intel GPU profile (integrated graphics)
+  o3de-dev-intel:
+    <<: *common
+    profiles: ["intel"]
+    container_name: o3de-dev
+    environment:
+      - UID=${UID}
+      - GID=${GID}
+      - USERNAME=devuser
+      - O3DE_ROOT=/home/devuser/o3de
+      - DISPLAY=${DISPLAY}
+      - GPU_VENDOR=intel
+    devices:
+      - /dev/dri
+    group_add:
+      - video
+      - render
