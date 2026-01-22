@@ -1,164 +1,227 @@
 # dev-container: O3DE Development Container
 
-## Purpose
+A hardware-agnostic Docker container for building and running O3DE (Open 3D Engine) on Linux with GPU support for NVIDIA, AMD, and Intel.
 
-This directory provides a **hardware-agnostic development container** for O3DE (Open 3D Engine). Unlike the main repo's `/Docker/` which builds SDK packages from a cloned source, this solution:
+---
 
-1. **Mounts your local source code** - work with your own directories, not a clone
-2. **Supports multiple GPU vendors** - NVIDIA, AMD, and Intel (not just NVIDIA)
-3. **Simplifies developer workflow** - docker-compose for easy startup
-4. **Enables both building AND running** O3DE in the container
+## Quick Start (Copy-Paste Commands)
 
-## Current State (as of 2026-01)
-
-- Full build toolchain (GCC 13, Clang, CMake 3.28.3, Ninja)
-- GPU auto-detection via `lspci` (NVIDIA/AMD/Intel)
-- Docker Compose profiles for vendor-specific GPU passthrough
-- `run-container.sh` - Single-command startup with auto-detection
-- `build-engine.sh` - Automated engine build script
-- Confirmed working: AMD GPU runtime, NVIDIA GPU runtime
-- Needs testing: Intel integrated graphics
-
-## Vendor Neutrality Assessment
-
-### What IS vendor-neutral:
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Base image | Neutral | `ubuntu:22.04`, no vendor lock-in |
-| GPU detection | Neutral | `entrypoint.sh` auto-detects via `lspci` |
-| Graphics libs | Neutral | Vulkan, Mesa - work with any GPU |
-| Build toolchain | Neutral | Standard GCC/Clang, no GPU-specific compilers |
-
-### Vendor-neutral implementation:
-| Component | Approach |
-|-----------|----------|
-| docker-compose.yml | YAML anchors for shared config + profiles (`nvidia`, `amd`, `intel`) |
-| run-container.sh | Auto-detects GPU via `lspci`, selects correct profile |
-| Manual override | `./run-container.sh --profile nvidia` to force a specific vendor |
-
-### Remaining limitations:
-| Component | Issue |
-|-----------|-------|
-| Architecture | x86_64 only (CMake binary hardcoded) |
-| Display server | X11 only (no Wayland support yet) |
-
-### GPU Vendor Requirements:
-| Vendor | Host Requirements | Container Devices | Env Vars |
-|--------|-------------------|-------------------|----------|
-| NVIDIA | nvidia-container-toolkit | (handled by runtime) | `NVIDIA_VISIBLE_DEVICES=all` |
-| AMD | ROCm kernel driver | `/dev/kfd`, `/dev/dri` | `ROC_ENABLE_PRE_VEGA=1` (optional) |
-| Intel | i915 driver | `/dev/dri` | (none required) |
-
-## Goals
-
-1. **Single-command startup** regardless of GPU vendor
-2. **Zero host modification** beyond Docker and GPU drivers
-3. **Seamless file permissions** via UID/GID mapping
-4. **GUI application support** (Project Manager, Editor) via X11
-5. **Cross-architecture** support (x86_64, ARM64 stretch goal)
-
-## Architecture
-
-```
-Host System
-├── GPU Driver (NVIDIA/AMD/Intel)
-├── Docker Engine
-│   └── nvidia-container-toolkit (if NVIDIA)
-└── /home/user/o3de_dev/  ← Your source code
-        │
-        ▼ (bind mount)
-Container
-├── Ubuntu 22.04 base
-├── Build toolchain (GCC, Clang, CMake, Ninja)
-├── O3DE dependencies (Qt libs, Vulkan, etc.)
-├── /home/devuser/o3de/  ← Mounted source
-└── entrypoint.sh (GPU detection, user setup)
-```
-
-## Prerequisites
-
-| GPU Vendor | Host Requirements |
-|------------|-------------------|
-| NVIDIA | `nvidia-driver-xxx`, `nvidia-container-toolkit` |
-| AMD | AMDGPU driver (usually included in kernel), `/dev/kfd` and `/dev/dri` accessible |
-| Intel | i915 driver (included in kernel), `/dev/dri` accessible |
-
-All vendors require:
-- Docker Engine
-- User in `docker` group (`sudo usermod -aG docker $USER`, then logout/login)
-
-## Usage
+### Step 0: One-Time Host Setup
 
 ```bash
-# From dev-container directory
+# Install Docker (if not already installed)
+# See: https://docs.docker.com/engine/install/ubuntu/
+
+# Add yourself to the docker group (required for GPU access)
+sudo usermod -aG docker $USER
+
+# Log out and log back in (or reboot) for group change to take effect
+# Verify with: groups | grep docker
+```
+
+**For NVIDIA GPUs only:**
+```bash
+# Install nvidia-container-toolkit
+# See: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+sudo apt-get install -y nvidia-container-toolkit
+sudo systemctl restart docker
+```
+
+### Step 1: Build the Container Image
+
+```bash
+# Navigate to the dev-container directory
 cd dev-container
 
-# Auto-detect GPU and launch container
+# Build the container (auto-detects your GPU)
+# For NVIDIA:
+docker compose --profile nvidia build
+
+# For AMD:
+docker compose --profile amd build
+
+# For Intel:
+docker compose --profile intel build
+```
+
+This takes ~7 minutes on a fast connection (downloads Ubuntu base + build tools).
+
+### Step 2: Build the O3DE Engine
+
+```bash
+# Launch the container (auto-detects GPU)
 ./run-container.sh
 
-# Or manually specify GPU vendor
+# You are now inside the container. Build the engine:
+./dev-container/build-engine.sh
+```
+
+This takes ~20-40 minutes depending on your CPU (compiles 1047 targets).
+
+### Step 3: Run O3DE
+
+```bash
+# Still inside the container, run the Project Manager:
+./build/bin/debug/o3de
+
+# Or run the Editor directly (requires a project):
+./build/bin/debug/Editor
+```
+
+---
+
+## Complete Workflow Example (NVIDIA)
+
+```bash
+# === ON YOUR HOST MACHINE ===
+
+# 1. Navigate to dev-container
+cd /path/to/o3de/dev-container
+
+# 2. Build the Docker image (first time only)
+docker compose --profile nvidia build
+
+# 3. Launch the container
+./run-container.sh
+
+# === NOW INSIDE THE CONTAINER ===
+
+# 4. Build the engine (first time only, ~30 min)
+./dev-container/build-engine.sh
+
+# 5. Run the Project Manager
+./build/bin/debug/o3de
+
+# 6. Exit when done
+exit
+```
+
+---
+
+## Complete Workflow Example (AMD)
+
+```bash
+# === ON YOUR HOST MACHINE ===
+
+# 1. Navigate to dev-container
+cd /path/to/o3de/dev-container
+
+# 2. Build the Docker image (first time only)
+docker compose --profile amd build
+
+# 3. Launch the container
+./run-container.sh
+
+# === NOW INSIDE THE CONTAINER ===
+
+# 4. Build the engine (first time only, ~30 min)
+./dev-container/build-engine.sh
+
+# 5. Run the Project Manager
+./build/bin/debug/o3de
+
+# 6. Exit when done
+exit
+```
+
+---
+
+## Troubleshooting
+
+### "permission denied" when running docker commands
+```bash
+# Add yourself to docker group and re-login
+sudo usermod -aG docker $USER
+# Then log out and back in
+```
+
+### "NVIDIA driver not found" or GPU not detected in container
+```bash
+# Verify nvidia-container-toolkit is installed
+nvidia-container-cli --version
+
+# Verify your GPU is visible
+nvidia-smi
+
+# If nvidia-smi works on host but not in container, restart docker:
+sudo systemctl restart docker
+```
+
+### "could not select device driver" error
+```bash
+# Install nvidia-container-toolkit
+sudo apt-get install -y nvidia-container-toolkit
+sudo systemctl restart docker
+```
+
+### Project Manager or Editor crashes immediately
+```bash
+# Make sure X11 forwarding is working
+echo $DISPLAY  # Should show something like ":0" or ":1"
+
+# Try running with explicit DISPLAY
+DISPLAY=:0 ./build/bin/debug/o3de
+```
+
+### Force a specific GPU profile
+```bash
+# Override auto-detection
 ./run-container.sh --profile nvidia
 ./run-container.sh --profile amd
 ./run-container.sh --profile intel
-
-# Inside container
-./dev-container/build-engine.sh    # Build the engine
-./build/linux/bin/profile/Editor   # Run the editor (once built)
 ```
 
-### First-time setup
+---
 
-```bash
-# Build the container image (only needed once, or after Dockerfile changes)
-docker compose --profile nvidia build   # or amd/intel
-```
+## What This Container Provides
 
-## Comparison with Main Repo /Docker/
+| Component | Version |
+|-----------|---------|
+| Base OS | Ubuntu 22.04 |
+| C++ Compiler | Clang 14, GCC 13 |
+| CMake | 3.28.3 |
+| Build System | Ninja |
+| Graphics | Vulkan, Mesa |
 
-| Feature | dev-container (this) | /Docker/ (main repo) |
-|---------|----------------------|---------------------|
-| Source code | Mounted from host | Cloned at build time |
-| GPU support | NVIDIA + AMD + Intel | NVIDIA only |
-| Output | Development environment | SDK installer package |
-| Startup | docker-compose | Manual docker run |
-| Use case | Iterative development | Release packaging |
+Your source code is mounted from the host at `/home/devuser/o3de`, so:
+- Edits on your host are immediately visible in the container
+- Build artifacts persist on your host filesystem
+- You only need to rebuild the engine when source changes
 
-## Known Issues / TODO
+---
 
-- [x] Unify docker-compose.yml for all GPU vendors (use profiles or detection script)
-- [x] Test NVIDIA runtime path end-to-end
-- [x] Document host prerequisites per GPU vendor
-- [ ] Test Intel integrated graphics
-- [ ] Add ARM64 support (would need different CMake install)
-- [ ] Consider Wayland support (currently X11 only)
-- [ ] Add VS Code devcontainer.json for IDE integration
-
-## Files Reference
+## File Reference
 
 | File | Purpose |
 |------|---------|
-| `Dockerfile.dev` | Container image definition (Ubuntu 22.04 + build tools) |
-| `docker-compose.yml` | Service orchestration with GPU vendor profiles |
-| `entrypoint.sh` | Container init (GPU detection, env setup) |
-| `run-container.sh` | Main entry point - auto-detects GPU, manages X11 access |
-| `build-engine.sh` | O3DE build automation |
-| `.env` | Default UID/GID values (optional, run-container.sh auto-detects) |
+| `Dockerfile.dev` | Container image definition |
+| `docker-compose.yml` | GPU profiles (nvidia/amd/intel) |
+| `run-container.sh` | Main entry point with auto-detection |
+| `build-engine.sh` | Builds O3DE inside container |
+| `entrypoint.sh` | Container startup script |
+
+---
+
+## GPU Support Matrix
+
+| GPU Vendor | Tested | Host Requirements |
+|------------|--------|-------------------|
+| NVIDIA | Yes (RTX 4070) | `nvidia-driver-xxx`, `nvidia-container-toolkit` |
+| AMD | Yes | AMDGPU kernel driver (usually built-in) |
+| Intel | No | i915 kernel driver (usually built-in) |
+
+---
 
 ## Session Notes
-
-_Use this section to track progress across work sessions._
 
 ### 2025-05: Initial development
 - Created initial container setup
 - Achieved functional Linux build in container
 - Achieved functional runtime on AMD GPU
-- Renamed to dev-container (on feature branch)
-- Paused development
 
-### 2026-01: Resuming development
-- Merged upstream changes
-- Assessed vendor neutrality gaps
+### 2026-01: GPU-neutral implementation
 - Implemented Docker Compose profiles for NVIDIA/AMD/Intel
 - Added GPU auto-detection to `run-container.sh`
-- Tested and confirmed NVIDIA GPU passthrough working (RTX 4070)
-- Simplified `entrypoint.sh` (removed usermod, compose handles groups)
+- Tested and confirmed working:
+  - NVIDIA RTX 4070: GPU passthrough, engine build, Project Manager GUI
+  - AMD: GPU passthrough, engine build, runtime (tested 2025-05)
