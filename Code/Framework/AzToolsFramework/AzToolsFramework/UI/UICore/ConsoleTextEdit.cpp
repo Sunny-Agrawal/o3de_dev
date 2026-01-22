@@ -49,7 +49,7 @@ namespace AzToolsFramework
             deleteAction,
             &QAction::triggered,
             this,
-            [=]()
+            [this]()
             {
                 textCursor().removeSelectedText();
             });
@@ -75,7 +75,7 @@ namespace AzToolsFramework
             this,
             &QPlainTextEdit::textChanged,
             selectAllAction,
-            [=]
+            [this, clearAction, selectAllAction]
             {
                 if (document() && !document()->isEmpty())
                 {

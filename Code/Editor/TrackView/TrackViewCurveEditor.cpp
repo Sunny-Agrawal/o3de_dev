@@ -13,9 +13,7 @@
 
 #include <AzCore/std/containers/set.h>
 
-AZ_PUSH_DISABLE_DLL_EXPORT_MEMBER_WARNING
 #include "TrackView/ui_TrackViewCurveEditor.h"
-AZ_POP_DISABLE_DLL_EXPORT_MEMBER_WARNING
 
 
 TrackViewCurveEditorDialog::TrackViewCurveEditorDialog(QWidget* parent)
@@ -23,7 +21,7 @@ TrackViewCurveEditorDialog::TrackViewCurveEditorDialog(QWidget* parent)
 {
     m_widget = new CTrackViewCurveEditor(this);
     QVBoxLayout* l = new QVBoxLayout;
-    l->setMargin(0);
+    l->setContentsMargins(0, 0, 0, 0);
     l->addWidget(m_widget);
     setLayout(l);
 }

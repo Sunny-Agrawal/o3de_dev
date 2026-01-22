@@ -13,6 +13,7 @@
 
 #include <AzCore/Settings/SettingsRegistryImpl.h>
 #include <AzCore/Settings/SettingsRegistryMergeUtils.h>
+#include <AzCore/Settings/SettingsRegistry.h>
 #include <AzCore/Utils/Utils.h>
 
 namespace O3DE::ProjectManager
@@ -88,7 +89,7 @@ namespace O3DE::ProjectManager
             QString xcodeBuilderVersionNumber = queryXcodeBuildVersion.GetValue().split("\n")[0];
             AZ_TracePrintf("Project Manager", "XcodeBuilder version %s detected.", xcodeBuilderVersionNumber.toUtf8().constData());
 
-            return AZ::Success(xcodeBuilderVersionNumber);
+            return AZ::Success(QString());
         }
 
         AZ::Outcome<void, QString> OpenCMakeGUI(const QString& projectPath)
@@ -138,7 +139,7 @@ namespace O3DE::ProjectManager
 
             // First attempt to launch the Editor.exe within the project build directory if it exists
             AZ::IO::FixedMaxPath buildPathSetregPath = fixedProjectPath
-            / AZ::SettingsRegistryInterface::DevUserRegistryFolder
+            / AZ::SettingsRegistryConstants::DevUserRegistryFolder
                 / "Platform" / AZ_TRAIT_OS_PLATFORM_CODENAME / "build_path.setreg";
             if (AZ::IO::SystemFile::Exists(buildPathSetregPath.c_str()))
             {

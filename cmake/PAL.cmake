@@ -203,6 +203,13 @@ function(o3de_find_restricted_folder restricted_name restricted_path)
     # Iterate over the restricted directories from the manifest file
     foreach(restricted_entry ${restricted_entries})
         set(restricted_json_file ${restricted_entry}/restricted.json)
+        if (NOT EXISTS ${restricted_json_file})
+            message(STATUS "Restricted file '${restricted_entry}' is listed in the o3de manifest, but does not exist.\n"
+                         "      If this is a left-over from an old project, consider removing it from the manifest by using\n"
+                         "      the o3de command line tool (excute this from a CLI inside the scripts folder in the engine)\n"
+                         "        o3de register --remove -rp \"${restricted_entry}\"")
+            continue()
+        endif()
         ly_file_read(${restricted_json_file} restricted_json)
         string(JSON this_restricted_name ERROR_VARIABLE json_error GET ${restricted_json} "restricted_name")
         if(json_error)
@@ -246,6 +253,11 @@ endforeach()
 
 # set the O3DE_ENGINE_RESTRICTED_PATH
 o3de_restricted_path(${LY_ROOT_FOLDER}/engine.json O3DE_ENGINE_RESTRICTED_PATH)
+if(NOT O3DE_ENGINE_RESTRICTED_PATH)
+    # If the engine.json does not have a 'restricted' field use the engine dir and append /restricted
+    set(O3DE_ENGINE_RESTRICTED_PATH "${LY_ROOT_FOLDER}/restricted")
+    message(VERBOSE "No restricted path found in engine.json, using default: ${O3DE_ENGINE_RESTRICTED_PATH}")
+endif()
 
 # detect platforms in the restricted path
 file(GLOB detection_files ${O3DE_ENGINE_RESTRICTED_PATH}/*/cmake/PALDetection_*.cmake)

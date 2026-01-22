@@ -6,22 +6,22 @@
  *
  */
 
-#ifndef INC_TARGETSELECTORBUTTON_H
-#define INC_TARGETSELECTORBUTTON_H
+#pragma once
+
+#include <AzToolsFramework/AzToolsFrameworkAPI.h>
 
 #if !defined(Q_MOC_RUN)
 #include <AzCore/base.h>
 #include <AzCore/Memory/SystemAllocator.h>
 #include <AzFramework/Network/IRemoteTools.h>
-#include <QtWidgets/QPushButton>
-#include <qwidgetaction.h>
+#include <QPushButton>
+#include <QWidgetAction>
 #endif
 
-#pragma once
 
 namespace AzToolsFramework
 {
-    class TargetSelectorButton
+    class AZTF_API TargetSelectorButton
         : public QPushButton
     {
         Q_OBJECT
@@ -46,7 +46,7 @@ namespace AzToolsFramework
     };
 
 
-    class TargetSelectorButtonAction
+    class AZTF_API TargetSelectorButtonAction
         : public QWidgetAction
     {
         Q_OBJECT
@@ -54,6 +54,8 @@ namespace AzToolsFramework
         AZ_CLASS_ALLOCATOR(TargetSelectorButtonAction, AZ::SystemAllocator);
 
         TargetSelectorButtonAction(AZ::Crc32 key, QObject* pParent); // create default action
+        bool HasTarget() const;
+        void ConnectToFirstTargetIfNotConnected() const;
 
     protected:
         virtual QWidget* createWidget(QWidget* pParent);
@@ -62,5 +64,3 @@ namespace AzToolsFramework
         AZ::Crc32 m_remoteToolsKey;
     };
 }
-
-#endif

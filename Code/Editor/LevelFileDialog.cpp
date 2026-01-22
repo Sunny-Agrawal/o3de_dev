@@ -16,6 +16,7 @@
 // Qt
 #include <QMessageBox>
 #include <QInputDialog>
+#include <QRegularExpression>
 
 // Editor
 #include "LevelTreeModel.h"
@@ -23,9 +24,7 @@
 #include "API/ToolsApplicationAPI.h"
 
 
-AZ_PUSH_DISABLE_DLL_EXPORT_MEMBER_WARNING
 #include <ui_LevelFileDialog.h>
-AZ_POP_DISABLE_DLL_EXPORT_MEMBER_WARNING
 
 static const char lastLoadPathFilename[] = "lastLoadPath.preset";
 
@@ -84,7 +83,7 @@ CLevelFileDialog::CLevelFileDialog(bool openDialog, QWidget* parent)
     }
 
     // reject invalid file names
-    ui->nameLineEdit->setValidator(new QRegExpValidator(QRegExp("^[a-zA-Z0-9_\\-./]*$"), ui->nameLineEdit));
+    ui->nameLineEdit->setValidator(new QRegularExpressionValidator(QRegularExpression("^[a-zA-Z0-9_\\-./]*$"), ui->nameLineEdit));
 
     ReloadTree();
     LoadLastUsedLevelPath();

@@ -73,7 +73,7 @@ namespace O3DE::ProjectManager
                     ProjectUtils::ExecuteCommandResult("which", QStringList{ QString("clang++%1").arg(supportClangVersion) });
                 if (whichClangResult.IsSuccess() && whichClangPPResult.IsSuccess())
                 {
-                    return AZ::Success(QString("clang%1").arg(supportClangVersion));
+                    return AZ::Success(QString());
                 }
             }
 
@@ -82,7 +82,7 @@ namespace O3DE::ProjectManager
             auto whichGPlusPlusNoVersionResult = ProjectUtils::ExecuteCommandResult("which", QStringList{ QString("g++") });
             if (whichGccNoVersionResult.IsSuccess() && whichGPlusPlusNoVersionResult.IsSuccess())
             {
-                return AZ::Success(QString("gcc"));
+                return AZ::Success(QString());
             }
 
             return AZ::Failure(QObject::tr("Neither clang nor gcc not found. <br><br>"
@@ -135,7 +135,7 @@ namespace O3DE::ProjectManager
             AZ::IO::FixedMaxPath fixedProjectPath{ projectPath };
             // First attempt to launch the Editor.exe within the project build directory if it exists
             AZ::IO::FixedMaxPath buildPathSetregPath = fixedProjectPath
-                / AZ::SettingsRegistryInterface::DevUserRegistryFolder
+                / AZ::SettingsRegistryConstants::DevUserRegistryFolder
                 / "Platform" / AZ_TRAIT_OS_PLATFORM_CODENAME / "build_path.setreg";
             if (AZ::IO::SystemFile::Exists(buildPathSetregPath.c_str()))
             {

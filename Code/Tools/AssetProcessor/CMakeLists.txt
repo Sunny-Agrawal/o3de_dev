@@ -19,7 +19,6 @@ ly_add_target(
     NAME AssetProcessor.Static STATIC
     NAMESPACE AZ
     AUTOMOC
-    AUTORCC
     FILES_CMAKE
         assetprocessor_static_files.cmake
         Platform/${PAL_PLATFORM_NAME}/assetprocessor_${PAL_PLATFORM_NAME_LOWERCASE}_files.cmake
@@ -77,6 +76,10 @@ ly_add_target(
     RUNTIME_DEPENDENCIES
         AZ::AssetBuilder
 )
+
+if(PAL_TRAIT_BUILD_EXTERNAL_CRASH_HANDLER_SUPPORTED)
+    ly_target_link_libraries(AssetProcessor PRIVATE AZ::ToolsCrashHandler)
+endif()
 
 # Adds the AssetProcessor target as a C preprocessor define so that it can be used as a Settings Registry
 # specialization in order to look up the generated .setreg which contains the dependencies

@@ -161,6 +161,7 @@ namespace AZ::DocumentPropertyEditor
                 // notify the new value in the container so that listeners can update dom / store overrides / undo redo
                 AZ::Dom::Value newValue = impl->GetContainerValue(m_containerInstance, containerNode);
                 Nodes::PropertyEditor::OnChanged.InvokeOnDomNode(containerNode, newValue, Nodes::ValueChangeType::InProgressEdit);
+                AZ::DocumentPropertyEditor::ReflectionAdapter::InvokeChangeNotify(containerNode);
                 Nodes::PropertyEditor::OnChanged.InvokeOnDomNode(containerNode, newValue, Nodes::ValueChangeType::FinishedEdit);
 
                 impl->m_adapter->NotifyResetDocument();
@@ -175,8 +176,8 @@ namespace AZ::DocumentPropertyEditor
                 // Notify that the document has changed with the new value in the container:
                 AZ::Dom::Value newValue = impl->GetContainerValue(m_containerInstance, containerNode);
                 Nodes::PropertyEditor::OnChanged.InvokeOnDomNode(containerNode, newValue, Nodes::ValueChangeType::InProgressEdit);
+                AZ::DocumentPropertyEditor::ReflectionAdapter::InvokeChangeNotify(containerNode);
                 Nodes::PropertyEditor::OnChanged.InvokeOnDomNode(containerNode, newValue, Nodes::ValueChangeType::FinishedEdit);
-
                 // rebuild the view based on the new contents, which could be many rows.
                 // This deletes the 'this' pointer!
                 impl->m_adapter->NotifyResetDocument(); 
@@ -201,7 +202,10 @@ namespace AZ::DocumentPropertyEditor
                     serialContext->EnumerateDerived(
                         [&derivedClasses](const AZ::SerializeContext::ClassData* classData, const AZ::Uuid& /*knownType*/) -> bool
                         {
-                            derivedClasses->push_back(classData);
+                            if (!(classData->m_azRtti && classData->m_azRtti->IsAbstract()))
+                            {
+                                derivedClasses->push_back(classData);
+                            }
                             return true;
                         },
                         containerClassElement->m_typeId,
@@ -471,6 +475,7 @@ namespace AZ::DocumentPropertyEditor
                 // notify about the new values in the container:
                 AZ::Dom::Value newValue = impl->GetContainerValue(m_containerInstance, containerNode);
                 Nodes::PropertyEditor::OnChanged.InvokeOnDomNode(containerNode, newValue, Nodes::ValueChangeType::InProgressEdit);
+                AZ::DocumentPropertyEditor::ReflectionAdapter::InvokeChangeNotify(containerNode);
                 Nodes::PropertyEditor::OnChanged.InvokeOnDomNode(containerNode, newValue, Nodes::ValueChangeType::FinishedEdit);
 
                 impl->m_adapter->NotifyResetDocument();
@@ -484,6 +489,7 @@ namespace AZ::DocumentPropertyEditor
                 //  notify about the new values in the container:
                 AZ::Dom::Value newValue = impl->GetContainerValue(m_containerInstance, containerNode);
                 Nodes::PropertyEditor::OnChanged.InvokeOnDomNode(containerNode, newValue, Nodes::ValueChangeType::InProgressEdit);
+                AZ::DocumentPropertyEditor::ReflectionAdapter::InvokeChangeNotify(containerNode);
                 Nodes::PropertyEditor::OnChanged.InvokeOnDomNode(containerNode, newValue, Nodes::ValueChangeType::FinishedEdit);
 
                 impl->m_adapter->NotifyResetDocument();

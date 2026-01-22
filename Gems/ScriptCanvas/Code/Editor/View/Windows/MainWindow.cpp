@@ -33,6 +33,8 @@
 #include <QProgressDialog>
 #include <QToolButton>
 
+#include <AtomToolsFramework/Document/AtomToolsDocumentRequestBus.h>
+
 #include <ScriptEvents/ScriptEventsAsset.h>
 
 #include <Editor/GraphCanvas/Components/MappingComponent.h>
@@ -79,11 +81,11 @@
 #include <AzCore/std/containers/set.h>
 #include <AzCore/std/smart_ptr/make_shared.h>
 
+#include <AzFramework/API/ApplicationAPI.h>
 #include <AzFramework/Asset/AssetCatalog.h>
 #include <AzFramework/StringFunc/StringFunc.h>
 
 #include <AzToolsFramework/ActionManager/HotKey/HotKeyManagerInterface.h>
-#include <AzToolsFramework/AssetBrowser/AssetBrowserBus.h>
 #include <AzToolsFramework/AssetBrowser/AssetBrowserModel.h>
 #include <AzToolsFramework/AssetBrowser/AssetSelectionModel.h>
 #include <AzToolsFramework/AssetBrowser/Entries/SourceAssetBrowserEntry.h>
@@ -161,8 +163,6 @@
 
 namespace ScriptCanvasEditor
 {
-    using namespace AzToolsFramework;
-
     namespace
     {
         template <typename T>
@@ -361,7 +361,16 @@ namespace ScriptCanvasEditor
     // MainWindow
     ////////////////
 
+#if !SCRIPTCANVAS_STANDALONE_APPLICATION
+
     MainWindow::MainWindow(QWidget* parent)
+        : MainWindow(AZ::Crc32("ScriptCanvas"), parent)
+    {
+    }
+
+#endif
+
+    MainWindow::MainWindow(const AZ::Crc32& toolId, QWidget* parent)
         : QMainWindow(parent, Qt::Widget | Qt::WindowMinMaxButtonsHint)
         , ui(new Ui::MainWindow)
         , m_loadingNewlySavedFile(false)
@@ -377,11 +386,36 @@ namespace ScriptCanvasEditor
         , m_systemTickActions(0)
         , m_closeCurrentGraphAfterSave(false)
         , m_styleManager(ScriptCanvasEditor::AssetEditorId, "ScriptCanvas/StyleSheet/graphcanvas_style.json")
+        , m_toolId(toolId)
+    {
+        AtomToolsFramework::AtomToolsDocumentNotificationBus::Handler::BusConnect(m_toolId);
+        VariablePaletteRequestBus::Handler::BusConnect();
+        GraphCanvas::AssetEditorAutomationRequestBus::Handler::BusConnect(ScriptCanvasEditor::AssetEditorId);
+        AssetBrowserComponentNotificationBus::Handler::BusConnect();
+
+        bool isReady = false;
+        AzToolsFramework::AssetBrowser::AssetBrowserComponentRequestBus::BroadcastResult(
+            isReady, &AzToolsFramework::AssetBrowser::AssetBrowserComponentRequests::AreEntriesReady);
+        if (isReady)
+        {
+            InitMainWindow(); // Will be init during OnAssetBrowserComponentReady() otherwise
+        }
+    }
+
+    void MainWindow::InitMainWindow()
     {
         AZ_PROFILE_FUNCTION(ScriptCanvas);
 
-        VariablePaletteRequestBus::Handler::BusConnect();
-        GraphCanvas::AssetEditorAutomationRequestBus::Handler::BusConnect(ScriptCanvasEditor::AssetEditorId);
+#if SCRIPTCANVAS_STANDALONE_APPLICATION
+        static bool alreadyInit = false;
+        if (alreadyInit)
+        {
+            AZ_Assert(false, "ScriptCanvas InitMainWindow() called twice, this shouldn't happen");
+            return;
+        }
+
+        alreadyInit = true;
+#endif
 
         AZStd::array<char, AZ::IO::MaxPathLength> unresolvedPath;
         AZ::IO::FileIOBase::GetInstance()->ResolvePath("@products@/translation/scriptcanvas_en_us.qm", unresolvedPath.data(), unresolvedPath.size());
@@ -671,12 +705,14 @@ namespace ScriptCanvasEditor
         m_autoSaveTimer.setSingleShot(true);
         connect(&m_autoSaveTimer, &QTimer::timeout, this, &MainWindow::OnAutoSave);
         UpdateMenuState(false);
+
     }
 
     MainWindow::~MainWindow()
     {
         m_workspace->Save();
 
+        AssetBrowserComponentNotificationBus::Handler::BusDisconnect();
         ScriptCanvas::BatchOperationNotificationBus::Handler::BusDisconnect();
         GraphCanvas::AssetEditorRequestBus::Handler::BusDisconnect();
         UndoNotificationBus::Handler::BusDisconnect();
@@ -685,6 +721,7 @@ namespace ScriptCanvasEditor
         GraphCanvas::AssetEditorAutomationRequestBus::Handler::BusDisconnect();
         ScriptCanvas::ScriptCanvasSettingsRequestBus::Handler::BusDisconnect();
         AzToolsFramework::AssetSystemBus::Handler::BusDisconnect();
+        AtomToolsFramework::AtomToolsDocumentNotificationBus::Handler::BusDisconnect();
 
         if (auto hotKeyManagerInterface = AZ::Interface<AzToolsFramework::HotKeyManagerInterface>::Get())
         {
@@ -941,6 +978,11 @@ namespace ScriptCanvasEditor
 
         m_workspace->Save();
         event->accept();
+
+#if SCRIPTCANVAS_STANDALONE_APPLICATION
+        AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::ExitMainLoop);
+#endif
+
     }
 
     UnsavedChangesOptions MainWindow::ShowSaveDialog(const QString& filename)
@@ -1033,6 +1075,14 @@ namespace ScriptCanvasEditor
 
         delete m_slotTypeSelector;
         return output;
+    }
+
+    void MainWindow::OnDocumentOpened(const AZ::Uuid& documentId)
+    {
+        AZStd::string result;
+        AtomToolsFramework::AtomToolsDocumentRequestBus::EventResult(
+            result, documentId, &AtomToolsFramework::AtomToolsDocumentRequestBus::Events::GetAbsolutePath);
+        OpenFile(result.c_str());
     }
 
     void MainWindow::OpenValidationPanel()
@@ -1983,8 +2033,8 @@ namespace ScriptCanvasEditor
         ui->action_AlignLeft->setShortcutContext(Qt::WidgetWithChildrenShortcut);
         ui->action_AlignRight->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 
-        ui->action_ZoomIn->setShortcuts({ QKeySequence(Qt::CTRL + Qt::Key_Plus),
-                                          QKeySequence(Qt::CTRL + Qt::Key_Equal)
+        ui->action_ZoomIn->setShortcuts({ QKeySequence(0x0 | Qt::CTRL | Qt::Key_Plus),
+                                          QKeySequence(0x0 | Qt::CTRL | Qt::Key_Equal)
                                         });
 
         // View Menu
@@ -2042,7 +2092,7 @@ namespace ScriptCanvasEditor
         GraphCanvas::SceneRequestBus::EventResult(copyMimeType, GetActiveGraphCanvasGraphId(), &GraphCanvas::SceneRequests::GetCopyMimeType);
 
         const bool pasteableClipboard = (!copyMimeType.empty() && QApplication::clipboard()->mimeData()->hasFormat(copyMimeType.c_str()))
-                                        || GraphVariablesTableView::HasCopyVariableData();
+                                        || !GraphVariablesTableView::HasCopyVariableData();
 
         ui->action_Paste->setEnabled(pasteableClipboard);
     }
@@ -2910,9 +2960,7 @@ namespace ScriptCanvasEditor
         ui->action_Cut->setEnabled(hasCopiableSelection);
         ui->action_Copy->setEnabled(hasCopiableSelection);
         ui->action_Duplicate->setEnabled(hasCopiableSelection);
-
-        // Delete will work for anything that is selectable
-        ui->action_Delete->setEnabled(hasSelection);
+        ui->action_Delete->setEnabled(m_selectedVariableIds.empty() && hasSelection);
     }
 
     void MainWindow::OnViewNodePalette()
@@ -3985,6 +4033,11 @@ namespace ScriptCanvasEditor
         PopPreventUndoStateUpdate();
     }
 
+    void MainWindow::OnAssetBrowserComponentReady()
+    {
+        InitMainWindow();
+    }
+
     void MainWindow::PrepareActiveAssetForSave()
     {
         PrepareAssetForSave(m_activeGraph);
@@ -4072,6 +4125,8 @@ namespace ScriptCanvasEditor
 
     void MainWindow::AssignGraphToEntityImpl(const AZ::EntityId& entityId)
     {
+        using namespace AzToolsFramework;
+
         EditorScriptCanvasComponentRequests* firstRequestBus = nullptr;
         EditorScriptCanvasComponentRequests* firstEmptyRequestBus = nullptr;
 
@@ -4148,6 +4203,7 @@ namespace ScriptCanvasEditor
 
             if (m_hasQueuedClose)
             {
+                AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::ExitMainLoop);
                 qobject_cast<QWidget*>(parent())->close();
             }
         }
@@ -4515,4 +4571,4 @@ namespace ScriptCanvasEditor
 
 
 #include <Editor/View/Windows/moc_MainWindow.cpp>
-}
+} // namespace ScriptCanvasEditor

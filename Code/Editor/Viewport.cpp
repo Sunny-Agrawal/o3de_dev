@@ -18,6 +18,7 @@
 #include <AzQtComponents/DragAndDrop/ViewportDragAndDrop.h>
 
 #include <AzCore/Math/IntersectSegment.h>
+#include <MathConversion.h>
 
 // AzToolsFramework
 #include <AzToolsFramework/API/ComponentEntitySelectionBus.h>
@@ -177,7 +178,7 @@ QtViewport::QtViewport(QWidget* parent)
 
     m_activeAxis = AXIS_TERRAIN;
 
-    m_screenTM.SetIdentity();
+    m_screenTM = AZ::Matrix3x4::CreateIdentity();
 
     m_bAdvancedSelectMode = false;
 
@@ -531,7 +532,6 @@ void QtViewport::OnSetCursor()
 //////////////////////////////////////////////////////////////////////////
 void QtViewport::ResetSelectionRegion()
 {
-    AABB box(Vec3(0, 0, 0), Vec3(0, 0, 0));
     m_selectedRect = QRect();
 }
 
@@ -544,8 +544,7 @@ void QtViewport::SetSelectionRectangle(const QRect& rect)
 void QtViewport::OnDragSelectRectangle(const QRect& rect, bool bNormalizeRect)
 {
     Vec3 org;
-    AABB box;
-    box.Reset();
+    AZ::Aabb box = AZ::Aabb::CreateNull();
 
     //adjust QRect bottom and right corner once before extracting bottom/right coordinates
     const QRect correctedRect = rect.adjusted(0, 0, 1, 1);
@@ -555,24 +554,27 @@ void QtViewport::OnDragSelectRectangle(const QRect& rect, bool bNormalizeRect)
     // Calculate selection volume.
     if (!bNormalizeRect)
     {
-        box.Add(p1);
-        box.Add(p2);
+        box.AddPoint(LYVec3ToAZVec3(p1));
+        box.AddPoint(LYVec3ToAZVec3(p2));
     }
     else
     {
         const QRect rc = correctedRect.normalized();
-        box.Add(ViewToWorld(rc.topLeft()));
-        box.Add(ViewToWorld(rc.topRight()));
-        box.Add(ViewToWorld(rc.bottomLeft()));
-        box.Add(ViewToWorld(rc.bottomRight()));
+        box.AddPoint(LYVec3ToAZVec3(ViewToWorld(rc.topLeft())));
+        box.AddPoint(LYVec3ToAZVec3(ViewToWorld(rc.topRight())));
+        box.AddPoint(LYVec3ToAZVec3(ViewToWorld(rc.bottomLeft())));
+        box.AddPoint(LYVec3ToAZVec3(ViewToWorld(rc.bottomRight())));
     }
 
-    box.min.z = -10000;
-    box.max.z = 10000;
+    AZ::Vector3 boxMin = box.GetMin();
+    AZ::Vector3 boxMax = box.GetMax();
+    boxMin.SetZ(-10000);
+    boxMax.SetZ(10000);
+    box.Set(boxMin, boxMax);
 
     // Show marker position in the status bar
-    float w = box.max.x - box.min.x;
-    float h = box.max.y - box.min.y;
+    float w = box.GetXExtent();
+    float h = box.GetYExtent();
     char szNewStatusText[512];
     sprintf_s(szNewStatusText, "X:%g Y:%g Z:%g  W:%g H:%g", org.x, org.y, org.z, w, h);
     GetIEditor()->SetStatusText(szNewStatusText);
@@ -779,7 +781,7 @@ QSize QtViewport::GetIdealSize() const
 }
 
 //////////////////////////////////////////////////////////////////////////
-bool QtViewport::IsBoundsVisible([[maybe_unused]] const AABB& box) const
+bool QtViewport::IsBoundsVisible([[maybe_unused]] const AZ::Aabb& box) const
 {
     // Always visible in standard implementation.
     return true;
@@ -946,7 +948,7 @@ void QtViewport::OnRawInput([[maybe_unused]] UINT wParam, HRAWINPUT lParam)
                         all6DOFs[5] = msg.raw_rotation[2];
                     }
 
-                    Matrix34 viewTM = GetViewTM();
+                    AZ::Matrix3x4 viewTM = GetViewTM();
 
                     // Scale axis according to CVars
                     ICVar* sys_scale3DMouseTranslation = gEnv->pConsole->GetCVar("sys_scale3DMouseTranslation");
@@ -958,13 +960,13 @@ void QtViewport::OnRawInput([[maybe_unused]] UINT wParam, HRAWINPUT lParam)
                     t *= sys_scale3DMouseTranslation->GetFVal();
 
                     float as = 0.001f * gSettings.cameraMoveSpeed;
-                    Ang3 ypr = CreateAnglesYPR(Matrix33(viewTM));
+                    Ang3 ypr = CreateAnglesYPR(AZMatrix3x3ToLYMatrix3x3(AZ::Matrix3x3::CreateFromMatrix3x4(viewTM)));
                     ypr.x += -all6DOFs[5] * as * fScaleYPR;
                     ypr.y = AZStd::clamp(ypr.y + all6DOFs[3] * as * fScaleYPR, -1.5f, 1.5f); // to keep rotation in reasonable range
                     ypr.z = 0;                                                  // to have camera always upward
 
-                    viewTM = Matrix34(CreateOrientationYPR(ypr), viewTM.GetTranslation());
-                    viewTM = viewTM * Matrix34::CreateTranslationMat(t);
+                    viewTM = AZ::Matrix3x4::CreateFromMatrix3x3AndTranslation(LyMatrix3x3ToAzMatrix3x3(CreateOrientationYPR(ypr)), viewTM.GetTranslation());
+                    viewTM = viewTM * AZ::Matrix3x4::CreateTranslation(LYVec3ToAZVec3(t));
 
                     SetViewTM(viewTM);
                 }

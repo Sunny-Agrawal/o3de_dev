@@ -40,6 +40,8 @@ set(FILES
     Include/AtomLyIntegration/CommonFeatures/PostProcess/Bloom/BloomComponentConfig.h    
     Include/AtomLyIntegration/CommonFeatures/PostProcess/ChromaticAberration/ChromaticAberrationBus.h
     Include/AtomLyIntegration/CommonFeatures/PostProcess/ChromaticAberration/ChromaticAberrationComponentConfig.h    
+    Include/AtomLyIntegration/CommonFeatures/PostProcess/MotionBlur/MotionBlurBus.h
+    Include/AtomLyIntegration/CommonFeatures/PostProcess/MotionBlur/MotionBlurComponentConfig.h   
     Include/AtomLyIntegration/CommonFeatures/PostProcess/PaniniProjection/PaniniProjectionBus.h
     Include/AtomLyIntegration/CommonFeatures/PostProcess/PaniniProjection/PaniniProjectionComponentConfig.h    
     Include/AtomLyIntegration/CommonFeatures/PostProcess/FilmGrain/FilmGrainBus.h
@@ -75,8 +77,6 @@ set(FILES
     Include/AtomLyIntegration/CommonFeatures/ScreenSpace/DeferredFogComponentConfig.h
     Include/AtomLyIntegration/CommonFeatures/ScreenSpace/DeferredFogBus.h
     Include/AtomLyIntegration/CommonFeatures/SkinnedMesh/SkinnedMeshOverrideBus.h
-    Include/AtomLyIntegration/CommonFeatures/SkyAtmosphere/SkyAtmosphereBus.h
-    Include/AtomLyIntegration/CommonFeatures/SkyAtmosphere/SkyAtmosphereComponentConfig.h
     Include/AtomLyIntegration/CommonFeatures/SkyBox/HDRiSkyboxBus.h
     Include/AtomLyIntegration/CommonFeatures/SkyBox/HDRiSkyboxComponentConfig.h
     Include/AtomLyIntegration/CommonFeatures/SkyBox/PhysicalSkyBus.h

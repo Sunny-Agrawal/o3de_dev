@@ -13,6 +13,7 @@
 #include <Atom/RHI/PhysicalDevice.h>
 #include <Atom/RHI/DeviceQueryPool.h>
 #include <Atom/RHI/DeviceRayTracingAccelerationStructure.h>
+#include <Atom/RHI/DeviceRayTracingCompactionQueryPool.h>
 #include <Atom/RHI/DeviceRayTracingPipelineState.h>
 #include <Atom/RHI/DeviceRayTracingShaderTable.h>
 #include <Atom/RHI/DeviceDispatchRaysIndirectBuffer.h>
@@ -223,6 +224,13 @@ namespace AZ
             return nullptr;
         }
 
+        RHI::Ptr<RHI::DeviceRayTracingClusterBlas> SystemComponent::CreateRayTracingClusterBlas()
+        {
+            // [GFX TODO][ATOM-5268] Implement Metal Ray Tracing
+            AZ_Assert(false, "Not implemented");
+            return nullptr;
+        }
+
         RHI::Ptr<RHI::DeviceRayTracingTlas> SystemComponent::CreateRayTracingTlas()
         {
             // [GFX TODO][ATOM-5268] Implement Metal Ray Tracing
@@ -250,13 +258,13 @@ namespace AZ
             return nullptr;
         }
 
-        RHI::Ptr<RHI::DeviceRayTracingCompactionQueryPool> CreateRayTracingCompactionQueryPool()
+        RHI::Ptr<RHI::DeviceRayTracingCompactionQueryPool> SystemComponent::CreateRayTracingCompactionQueryPool()
         {
             AZ_Assert(false, "Not implemented");
             return nullptr;
         }
 
-        RHI::Ptr<RHI::DeviceRayTracingCompactionQuery> CreateRayTracingCompactionQuery()
+        RHI::Ptr<RHI::DeviceRayTracingCompactionQuery> SystemComponent::CreateRayTracingCompactionQuery()
         {
             AZ_Assert(false, "Not implemented");
             return nullptr;

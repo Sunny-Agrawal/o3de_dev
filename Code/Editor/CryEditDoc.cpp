@@ -46,6 +46,7 @@
 #include "ErrorReportDialog.h"
 #include "Util/AutoLogTime.h"
 #include "CheckOutDialog.h"
+#include "Util/PakFile.h"
 #include "MainWindow.h"
 #include "LevelFileDialog.h"
 #include "Undo/Undo.h"
@@ -367,13 +368,13 @@ void CCryEditDoc::SerializeViewSettings(CXmlArchive& xmlAr)
                 view->getAttr(viewerAnglesName.toUtf8().constData(), va);
             }
 
-            Matrix34 tm = Matrix34::CreateRotationXYZ(va);
-            tm.SetTranslation(vp);
+            AZ::Transform tm = AZ::Transform::CreateFromQuaternionAndTranslation(
+                AZ::Quaternion::CreateFromEulerRadiansZYX(LYAng3ToAZVec3(va)), LYVec3ToAZVec3(vp));
 
             auto viewportContextManager = AZ::Interface<AZ::RPI::ViewportContextRequestsInterface>::Get();
             if (auto viewportContext = viewportContextManager->GetViewportContextById(i))
             {
-                viewportContext->SetCameraTransform(LYTransformToAZTransform(tm));
+                viewportContext->SetCameraTransform(tm);
             }
         }
     }
@@ -393,8 +394,8 @@ void CCryEditDoc::SerializeViewSettings(CXmlArchive& xmlAr)
 
             if (pVP)
             {
-                Vec3 pos = pVP->GetViewTM().GetTranslation();
-                Ang3 angles = Ang3::GetAnglesXYZ(Matrix33(pVP->GetViewTM()));
+                Vec3 pos = AZVec3ToLYVec3(pVP->GetViewTM().GetTranslation());
+                Ang3 angles = AZVec3ToLYAng3(AZ::Quaternion::CreateFromMatrix3x4(pVP->GetViewTM()).GetEulerRadiansZYX());
                 auto viewerPosName = QString("ViewerPos%1").arg(i);
                 view->setAttr(viewerPosName.toUtf8().constData(), pos);
                 auto viewerAnglesName = QString("ViewerAngles%1").arg(i);
@@ -481,7 +482,6 @@ bool CCryEditDoc::CanCloseFrame()
     {
         return false;
     }
-
 
     return true;
 }
@@ -1125,7 +1125,7 @@ namespace {
                     ft.creationTime = handle.m_fileDesc.tCreate;
                     outputFolders.push_back(ft);
                 }
-            } while (handle = gEnv->pCryPak->FindNext(handle));
+            } while ((handle = gEnv->pCryPak->FindNext(handle)));
 
             gEnv->pCryPak->FindClose(handle);
         }
@@ -1481,42 +1481,41 @@ bool CCryEditDoc::LoadXmlArchiveArray(TDocMultiArchive& arrXmlAr, const QString&
 {
     auto pIPak = GetIEditor()->GetSystem()->GetIPak();
 
-    //if (m_pSWDoc->IsNull())
+    CXmlArchive* pXmlAr = new CXmlArchive();
+    if (!pXmlAr)
     {
-        CXmlArchive* pXmlAr = new CXmlArchive();
-        if (!pXmlAr)
-        {
-            return false;
-        }
-
-        CXmlArchive& xmlAr = *pXmlAr;
-        xmlAr.bLoading = true;
-
-        // bound to the level folder, as if it were the assets folder.
-        // this mounts (whateverlevelname.ly) as @products@/Levels/whateverlevelname/ and thus it works...
-        bool openLevelPakFileSuccess = pIPak->OpenPack(levelPath.toUtf8().data(), absoluteLevelPath.toUtf8().data());
-        if (!openLevelPakFileSuccess)
-        {
-            return false;
-        }
-
-        CPakFile pakFile;
-        bool loadFromPakSuccess = xmlAr.LoadFromPak(levelPath, pakFile);
-        pIPak->ClosePack(absoluteLevelPath.toUtf8().data());
-        if (!loadFromPakSuccess)
-        {
-            return false;
-        }
-
-        FillXmlArArray(arrXmlAr, &xmlAr);
+        return false;
     }
+
+    pXmlAr->bLoading = true;
+
+    // bound to the level folder, as if it were the assets folder.
+    // this mounts (whateverlevelname.ly) as @products@/Levels/whateverlevelname/ and thus it works...
+    bool openLevelPakFileSuccess = pIPak->OpenPack(levelPath.toUtf8().data(), absoluteLevelPath.toUtf8().data());
+    if (!openLevelPakFileSuccess)
+    {
+        return false;
+    }
+
+    CPakFile pakFile;
+    bool loadFromPakSuccess = pXmlAr->LoadFromPak(levelPath, pakFile);
+    pIPak->ClosePack(absoluteLevelPath.toUtf8().data());
+    if (!loadFromPakSuccess)
+    {
+        return false;
+    }
+
+    FillXmlArArray(arrXmlAr, pXmlAr);
 
     return true;
 }
 
 void CCryEditDoc::ReleaseXmlArchiveArray(TDocMultiArchive& arrXmlAr)
 {
-    SAFE_DELETE(arrXmlAr[0]);
+    for (int i = 0; i < DMAS_COUNT; ++i)
+    {
+        SAFE_DELETE(arrXmlAr[i]);
+    }
 }
 
 namespace AzToolsFramework

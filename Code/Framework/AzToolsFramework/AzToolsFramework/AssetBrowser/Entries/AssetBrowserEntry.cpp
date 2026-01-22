@@ -269,7 +269,7 @@ namespace AzToolsFramework
             return m_entryType;
         }
 
-        inline constexpr auto operator"" _hash(const char* str, size_t len)
+        inline constexpr auto operator ""_hash(const char* str, size_t len)
         {
             return AZStd::hash<AZStd::string_view>{}(AZStd::string_view{ str, len });
         }
@@ -391,10 +391,10 @@ namespace AzToolsFramework
         {
             if (m_thumbnailKey)
             {
-                disconnect(m_thumbnailKey.data(), nullptr, this, nullptr);
+                disconnect(m_thumbnailKey.get(), nullptr, this, nullptr);
             }
             m_thumbnailKey = thumbnailKey;
-            connect(m_thumbnailKey.data(), &ThumbnailKey::ThumbnailUpdated, this, &AssetBrowserEntry::SetThumbnailDirty);
+            connect(m_thumbnailKey.get(), &ThumbnailKey::ThumbnailUpdated, this, &AssetBrowserEntry::SetThumbnailDirty);
         }
 
         SharedThumbnailKey AssetBrowserEntry::GetThumbnailKey() const
