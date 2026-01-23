@@ -126,6 +126,77 @@ exit
 
 ---
 
+## Headless / SSH / CI Builds
+
+For automated builds without a display (SSH, CI/CD, build servers):
+
+### One-Command Build (Engine + Project)
+
+```bash
+# SSH into your machine, then:
+cd /path/to/o3de/dev-container
+
+# Build engine only (headless)
+./run-headless.sh ./dev-container/build-all.sh
+
+# Build engine + AutomatedTesting project
+./run-headless.sh ./dev-container/build-all.sh --project AutomatedTesting
+
+# Build in profile mode (optimized)
+./run-headless.sh ./dev-container/build-all.sh --project AutomatedTesting --config profile
+
+# Skip engine build (project only, if engine already built)
+./run-headless.sh ./dev-container/build-all.sh --project AutomatedTesting --skip-engine
+```
+
+### Create + Build a New Project (One Command)
+
+```bash
+# Create a new project from DefaultProject template and build everything
+./run-headless.sh ./dev-container/build-all.sh --project MyGame --create
+
+# Same, but skip engine rebuild (if already built)
+./run-headless.sh ./dev-container/build-all.sh --project MyGame --create --skip-engine
+
+# Use a different template (MinimalProject is lighter weight)
+./run-headless.sh ./dev-container/build-all.sh --project MyGame --create --template MinimalProject
+```
+
+Available templates: `DefaultProject`, `MinimalProject`, `ScriptOnlyProject`
+
+### Run Your Project After Building
+
+```bash
+# Launch container with display (for GUI)
+./run-container.sh
+
+# Inside the container, run the Editor with your project:
+./MyGame/build/bin/debug/Editor
+
+# Or run the game launcher:
+./MyGame/build/bin/debug/MyGame.GameLauncher
+```
+
+### Example: Full CI Pipeline
+
+```bash
+#!/bin/bash
+# ci-build.sh - Run this from your CI system
+
+set -e
+cd /path/to/o3de/dev-container
+
+# Build container image (cached after first run)
+docker compose --profile nvidia build
+
+# Build engine + project in one shot
+./run-headless.sh ./dev-container/build-all.sh --project AutomatedTesting --config profile
+
+echo "Build artifacts at: ../AutomatedTesting/build/bin/profile/"
+```
+
+---
+
 ## Troubleshooting
 
 ### "permission denied" when running docker commands
@@ -196,8 +267,10 @@ Your source code is mounted from the host at `/home/devuser/o3de`, so:
 |------|---------|
 | `Dockerfile.dev` | Container image definition |
 | `docker-compose.yml` | GPU profiles (nvidia/amd/intel) |
-| `run-container.sh` | Main entry point with auto-detection |
-| `build-engine.sh` | Builds O3DE inside container |
+| `run-container.sh` | Interactive container with X11 (for GUI apps) |
+| `run-headless.sh` | Headless container (for SSH/CI builds) |
+| `build-engine.sh` | Builds O3DE engine only |
+| `build-all.sh` | Builds engine + optional project |
 | `entrypoint.sh` | Container startup script |
 
 ---
