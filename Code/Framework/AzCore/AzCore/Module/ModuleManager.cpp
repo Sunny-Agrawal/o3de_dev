@@ -124,6 +124,11 @@ namespace AZ
     }
 
     //=========================================================================
+    // ModuleDataImpl
+    //=========================================================================
+    ModuleDataImpl::ModuleDataImpl() = default;
+
+    //=========================================================================
     // ~ModuleDataImpl
     //=========================================================================
     ModuleDataImpl::~ModuleDataImpl()
@@ -187,6 +192,8 @@ namespace AZ
     ModuleManager::~ModuleManager()
     {
         ModuleManagerRequestBus::Handler::BusDisconnect();
+
+        AZ::GetGlobalSerializeContextModule().Cleanup();
 
         UnloadModules();
 

@@ -164,10 +164,6 @@ namespace AZ
             RHI::RenderAttachmentLayoutBuilder builder;
             auto* layoutBuilder = builder.AddSubpass();
             BuildSubpassLayout(*layoutBuilder);
-            if (!layoutBuilder->HasAttachments())
-            {
-                return;
-            }
 
             RHI::RenderAttachmentLayout subpassLayout;
             [[maybe_unused]] RHI::ResultCode result = builder.End(subpassLayout);
@@ -273,9 +269,14 @@ namespace AZ
             }
 
             // the pass may potentially migrate between devices dynamically at runtime so the deviceIndex is updated every frame.
-            if (GetScopeId().IsEmpty() || (ScopeProducer::GetDeviceIndex() != Pass::GetDeviceIndex()))
+            auto passDeviceIndex = Pass::GetDeviceIndex();
+            if (passDeviceIndex == RHI::MultiDevice::InvalidDeviceIndex)
             {
-                InitScope(RHI::ScopeId(GetPathName()), m_hardwareQueueClass, Pass::GetDeviceIndex());
+                passDeviceIndex = RHI::MultiDevice::DefaultDeviceIndex;
+            }
+            if (GetScopeId().IsEmpty() || (ScopeProducer::GetDeviceIndex() != passDeviceIndex))
+            {
+                InitScope(RHI::ScopeId(GetPathName()), m_hardwareQueueClass, passDeviceIndex);
             }
 
             params.m_frameGraphBuilder->ImportScopeProducer(*this);
@@ -616,7 +617,7 @@ namespace AZ
 
             // This scope query implementation should be replaced by
             // [ATOM-5407] [RHI][Core] - Add GPU timestamp and pipeline statistic support for scopes
-            
+
             // For timestamp query, it's okay to execute across different command lists
             if (context.GetCommandListIndex() == context.GetCommandListCount() - 1)
             {

@@ -25,6 +25,7 @@
 #include <QtWinExtras/qwinfunctions.h>
 #endif
 
+#include <AzCore/Math/Matrix3x4.h>
 #include <AzCore/Math/Uuid.h>
 #include <IEditor.h>
 #endif
@@ -81,11 +82,9 @@ enum EStdCursor
     STD_CURSOR_LAST,
 };
 
-AZ_PUSH_DISABLE_DLL_EXPORT_BASECLASS_WARNING
 class SANDBOX_API CViewport
     : public IDisplayViewport
 {
-AZ_POP_DISABLE_DLL_EXPORT_BASECLASS_WARNING
 public:
     typedef void(* DropCallback)(CViewport* viewport, int ptx, int pty, void* custom);
 
@@ -154,24 +153,24 @@ public:
     //////////////////////////////////////////////////////////////////////////
     //! Set current view matrix,
     //! This is a matrix that transforms from world to view space.
-    virtual void SetViewTM([[maybe_unused]] const Matrix34& tm)
+    virtual void SetViewTM([[maybe_unused]] const AZ::Matrix3x4& tm)
     {
         AZ_Error("CryLegacy", false, "QtViewport::SetViewTM not implemented");
     }
 
     //! Get current view matrix.
     //! This is a matrix that transforms from world space to view space.
-    const Matrix34& GetViewTM() const override
+    const AZ::Matrix3x4& GetViewTM() const override
     {
         AZ_Error("CryLegacy", false, "QtViewport::GetViewTM not implemented");
-        static const Matrix34 m;
+        static const AZ::Matrix3x4 m = AZ::Matrix3x4::CreateZero();
         return m;
     };
 
     //////////////////////////////////////////////////////////////////////////
     //! Get current screen matrix.
     //! Screen matrix transform from World space to Screen space.
-    const Matrix34& GetScreenTM() const override
+    const AZ::Matrix3x4& GetScreenTM() const override
     {
         return m_screenTM;
     }
@@ -194,7 +193,7 @@ public:
 
     //! Center viewport on selection.
     virtual void CenterOnSelection() = 0;
-    virtual void CenterOnAABB(const AABB& aabb) = 0;
+    virtual void CenterOnAABB(const AZ::Aabb& aabb) = 0;
 
     /** Set ID of this viewport
     */
@@ -205,7 +204,7 @@ public:
     virtual int GetViewportId() const { return m_nCurViewportID; };
 
     // Store final Game Matrix ready for editor
-    void SetGameTM(const Matrix34& tm) { m_gameTM = tm; };
+    void SetGameTM(const AZ::Matrix3x4& tm) { m_gameTM = tm; };
 
     //////////////////////////////////////////////////////////////////////////
     // Drag and drop support on viewports.
@@ -254,13 +253,11 @@ public:
 protected:
     CLayoutViewPane* m_viewPane = nullptr;
     CViewManager* m_viewManager;
-    AZ_PUSH_DISABLE_DLL_EXPORT_MEMBER_WARNING
     // Screen Matrix
-    Matrix34 m_screenTM;
+    AZ::Matrix3x4 m_screenTM;
     int m_nCurViewportID;
     // Final game view matrix before dropping back to editor
-    Matrix34 m_gameTM;
-    AZ_POP_DISABLE_DLL_EXPORT_MEMBER_WARNING
+    AZ::Matrix3x4 m_gameTM;
 
     // Custom drop callback (Leroy@Conffx)
     DropCallback m_dropCallback;
@@ -392,7 +389,7 @@ public:
     float GetSelectionTolerance() const override { return m_selectionTolerance; }
     //! Center viewport on selection.
     void CenterOnSelection() override {}
-    void CenterOnAABB([[maybe_unused]] const AABB& aabb) override {}
+    void CenterOnAABB([[maybe_unused]] const AZ::Aabb& aabb) override {}
 
     //! Performs hit testing of 2d point in view to find which object hit.
     bool HitTest(const QPoint& point, HitContext& hitInfo) override;
@@ -420,7 +417,7 @@ public:
     virtual QSize GetIdealSize() const;
 
     //! Check if world space bounding box is visible in this view.
-    bool IsBoundsVisible(const AABB& box) const override;
+    bool IsBoundsVisible(const AZ::Aabb& box) const override;
 
     //////////////////////////////////////////////////////////////////////////
 
@@ -446,7 +443,6 @@ public:
     void setRay(QPoint& vp, Vec3& raySrc, Vec3& rayDir) override;
 
     QPoint m_vp;
-    AZ_PUSH_DISABLE_DLL_EXPORT_MEMBER_WARNING
     Vec3 m_raySrc;
     Vec3 m_rayDir;
 
@@ -455,7 +451,6 @@ public:
     // during the SScopedCurrentContext count check of m_cameraSetForWidgetRenderingCount.
     int m_processingMouseCallbacksCounter = 0;
 
-    AZ_POP_DISABLE_DLL_EXPORT_MEMBER_WARNING
 protected:
     friend class CViewManager;
     bool IsVectorInValidRange(const Vec3& v) const { return fabs(v.x) < 1e+8 && fabs(v.y) < 1e+8 && fabs(v.z) < 1e+8; }
@@ -500,9 +495,7 @@ protected:
     void dragLeaveEvent(QDragLeaveEvent* event) override;
     void dropEvent(QDropEvent* event) override;
 
-    AZ_PUSH_DISABLE_DLL_EXPORT_MEMBER_WARNING
     AzToolsFramework::ViewportUi::ViewportUiManager m_viewportUi;
-    AZ_POP_DISABLE_DLL_EXPORT_MEMBER_WARNING
 
     float m_selectionTolerance;
     QMenu m_cViewMenu;
@@ -539,11 +532,8 @@ protected:
 
     QRect m_rcClient;
 
-    AZ_PUSH_DISABLE_DLL_EXPORT_MEMBER_WARNING
-
     typedef std::vector<_smart_ptr<IPostRenderer> > PostRenderers;
     PostRenderers   m_postRenderers;
-    AZ_POP_DISABLE_DLL_EXPORT_MEMBER_WARNING
 
 protected:
     bool m_mouseCaptured = false;

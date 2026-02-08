@@ -729,7 +729,7 @@ bool CSystem::Init(const SSystemInitParams& startupParams)
     }
 
     SetSystemGlobalState(ESYSTEM_GLOBAL_STATE_INIT);
-    gEnv->mMainThreadId = GetCurrentThreadId(); // Set this ASAP on startup
+    gEnv->mMainThreadId = AZStd::this_thread::get_id(); // Set this ASAP on startup
 
     InlineInitializationProcessing("CSystem::Init start");
 
@@ -1384,10 +1384,6 @@ void CSystem::CreateSystemVars()
     REGISTER_STRING(
         "capture_file_prefix", "", 0, "If set, specifies the prefix to use for the captured frame instead of the default 'Frame'.");
 
-    m_gpu_particle_physics =
-        REGISTER_INT("gpu_particle_physics", 0, VF_REQUIRE_APP_RESTART, "Enable GPU physics if available (0=off / 1=enabled).");
-    assert(m_gpu_particle_physics);
-
     REGISTER_COMMAND(
         "LoadConfig",
         &LoadConfigurationCmd,
@@ -1452,7 +1448,7 @@ void CSystem::AddCVarGroupDirectory(const AZStd::string& sPath)
                 AddCVarGroupDirectory(ConcatPath(sPath.c_str(), handle.m_filename.data()));
             }
         }
-    } while (handle = gEnv->pCryPak->FindNext(handle));
+    } while ((handle = gEnv->pCryPak->FindNext(handle)));
 
     gEnv->pCryPak->FindClose(handle);
 }

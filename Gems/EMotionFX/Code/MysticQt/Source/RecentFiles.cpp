@@ -13,10 +13,10 @@
 #include <AzFramework/StringFunc/StringFunc.h>
 #include <AzToolsFramework/API/EditorAssetSystemAPI.h>
 #include <EMotionFX/Source/EMotionFXManager.h>
-#include <QtCore/QFileInfo>
-#include <QtCore/QSettings>
-#include <QtGui/QHelpEvent>
-#include <QtWidgets/QToolTip>
+#include <QFileInfo>
+#include <QSettings>
+#include <QHelpEvent>
+#include <QToolTip>
 
 namespace MysticQt
 {
@@ -173,7 +173,7 @@ namespace MysticQt
             if (foundInScanFolders)
             {
                 const QFileInfo fileInfo(m_recentFiles[i]);
-                const QString menuItemText = QString("&%1 %2").arg(i + 1).arg(fileInfo.fileName());
+                const QString menuItemText = QString("&%1 %2").arg(i + 1).arg(fileInfo.filePath());
 
                 QAction* action = new QAction(m_recentFilesMenu);
                 action->setText(menuItemText);

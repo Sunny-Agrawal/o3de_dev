@@ -6,7 +6,7 @@
  *
  */
 
-#include <ImGui/ImGuiPass.h>
+#include <Atom/Feature/ImGui/ImGuiPass.h>
 
 #include <AzFramework/Input/Devices/Gamepad/InputDeviceGamepad.h>
 #include <AzFramework/Input/Devices/Keyboard/InputDeviceKeyboard.h>
@@ -638,7 +638,7 @@ namespace AZ
                             }
                         }
 
-                        RHI::GeometryView geometryView;
+                        RHI::GeometryView geometryView{ RHI::MultiDevice::AllDevices };
                         geometryView.SetDrawArguments(RHI::DrawIndexed(vertexOffset, drawCmd.ElemCount, indexOffset));
                         geometryView.SetIndexBufferView(m_indexBufferView);
                         geometryView.AddStreamBufferView(m_vertexBufferView[0]);

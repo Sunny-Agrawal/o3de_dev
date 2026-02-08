@@ -290,7 +290,7 @@ namespace
         return response;
     }
 
-    GetScanFoldersResponse HandleGetScanFoldersRequest(MessageData<GetScanFoldersRequest> messageData)
+    GetScanFoldersResponse HandleGetScanFoldersRequest([[maybe_unused]] MessageData<GetScanFoldersRequest> messageData)
     {
         bool success = true;
         AZStd::vector<AZStd::string> scanFolders;
@@ -305,7 +305,7 @@ namespace
         return GetScanFoldersResponse(move(scanFolders));
     }
 
-    GetAssetSafeFoldersResponse HandleGetAssetSafeFoldersRequest(MessageData<GetAssetSafeFoldersRequest> messageData)
+    GetAssetSafeFoldersResponse HandleGetAssetSafeFoldersRequest([[maybe_unused]] MessageData<GetAssetSafeFoldersRequest> messageData)
     {
         bool success = true;
         AZStd::vector<AZStd::string> assetSafeFolders;
@@ -506,7 +506,7 @@ void AssetRequestHandler::OnCompileGroupFinished(NetworkRequestID groupID, Asset
     }
     else
     {
-        AZ_TracePrintf(AssetProcessor::DebugChannel, "Compile Group finished: %s.\n", located.value().GetDisplayString().toUtf8().constData());
+        AZ_TracePrintf(AssetProcessor::DebugChannel, "Compile Group finished: %s - %s\n", located.value().GetDisplayString().toUtf8().constData(), status == AssetStatus_Compiled ? "compiled" : "failed");
         SendAssetStatus(groupID, RequestAssetStatus::MessageType, status);
         m_pendingAssetRequests.erase(located);
     }

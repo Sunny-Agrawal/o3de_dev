@@ -37,7 +37,6 @@ class CTrackViewSequenceManager;
 class CGameEngine;
 class CToolBoxManager;
 class CMusicManager;
-struct IEditorParticleManager;
 class CEAXPresetManager;
 class CErrorReport;
 class ICommandManager;
@@ -56,11 +55,9 @@ class IAWSResourceManager;
 
 struct ISystem;
 struct IRenderer;
-struct AABB;
 struct IErrorReport; // Vladimir@conffx
 struct IFileUtil;  // Vladimir@conffx
 struct IEditorLog;  // Vladimir@conffx
-struct IEditorParticleUtils;  // Leroy@conffx
 
 // Qt
 
@@ -75,6 +72,11 @@ typedef void* HANDLE;
 struct HWND__;
 typedef HWND__* HWND;
 #endif
+
+namespace AZ
+{
+    class Aabb;
+}
 
 namespace Editor
 {
@@ -151,7 +153,7 @@ enum EEditorNotifyEvent
 
     eNotify_OnSplatmapImport, // Sent when splatmaps get imported
 
-    eNotify_OnParticleUpdate,          // A particle effect was modified.
+    eNotify_Deprecated00,              //  formerly eNotify_OnParticleUpdate, old particle system
     eNotify_OnAddAWSProfile,           // An AWS profile was added
     eNotify_OnSwitchAWSProfile,        // The AWS profile was switched
     eNotify_OnSwitchAWSDeployment,     // The AWS deployment was switched
@@ -444,7 +446,7 @@ struct IEditor
     //////////////////////////////////////////////////////////////////////////
     virtual class CLevelIndependentFileMan* GetLevelIndependentFileMan() = 0;
     //! Notify all views that data is changed.
-    virtual void UpdateViews(int flags = 0xFFFFFFFF, const AABB* updateRegion = nullptr) = 0;
+    virtual void UpdateViews(int flags = 0xFFFFFFFF, const AZ::Aabb* updateRegion = nullptr) = 0;
     virtual void ResetViews() = 0;
     //! Update information in track view dialog.
     virtual void ReloadTrackView() = 0;

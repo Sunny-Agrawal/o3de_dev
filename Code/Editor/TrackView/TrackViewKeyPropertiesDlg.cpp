@@ -24,10 +24,7 @@
 // Editor
 #include "Controls/ReflectedPropertyControl/ReflectedPropertyCtrl.h"
 
-AZ_PUSH_DISABLE_DLL_EXPORT_MEMBER_WARNING
 #include <TrackView/ui_TrackViewTrackPropsDlg.h>
-AZ_POP_DISABLE_DLL_EXPORT_MEMBER_WARNING
-
 
 void CTrackViewKeyUIControls::OnInternalVariableChange(IVariable* var)
 {
@@ -46,7 +43,7 @@ CTrackViewKeyPropertiesDlg::CTrackViewKeyPropertiesDlg(QWidget* hParentWnd)
     , m_sequence(nullptr)
 {
     QVBoxLayout* l = new QVBoxLayout();
-    l->setMargin(0);
+    l->setContentsMargins(0, 0, 0, 0);
     m_wndTrackProps = new CTrackViewTrackPropsDlg(this);
     l->addWidget(m_wndTrackProps);
     m_wndProps = new ReflectedPropertyControl(this);

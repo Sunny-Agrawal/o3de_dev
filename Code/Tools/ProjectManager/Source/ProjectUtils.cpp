@@ -575,14 +575,15 @@ namespace O3DE::ProjectManager
         {
             auto findCompilerResult = FindSupportedCompilerForPlatform(projectInfo);
 
-            if (!findCompilerResult.IsSuccess())
+            QString messageNotes = findCompilerResult.IsSuccess() ? findCompilerResult.GetValue() : findCompilerResult.GetError();
+            if (!messageNotes.isEmpty())
             {
                 QMessageBox vsWarningMessage(parent);
                 vsWarningMessage.setIcon(QMessageBox::Warning);
                 vsWarningMessage.setWindowTitle(QObject::tr("Create Project"));
                 // Makes link clickable
                 vsWarningMessage.setTextFormat(Qt::RichText);
-                vsWarningMessage.setText(findCompilerResult.GetError());
+                vsWarningMessage.setText(messageNotes);
                 vsWarningMessage.setStandardButtons(QMessageBox::Close);
 
                 QSpacerItem* horizontalSpacer = new QSpacerItem(600, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
@@ -633,7 +634,7 @@ namespace O3DE::ProjectManager
             QTextEdit* detailTextEdit = new QTextEdit(commandOutput, &dialog);
             detailTextEdit->setReadOnly(true);
             layout->addWidget(detailTextEdit);
-            layout->setMargin(0);
+            layout->setContentsMargins(0, 0, 0, 0);
             progressLabel->setLayout(layout);
             progressLabel->setMinimumHeight(150);
             dialog.setLabel(progressLabel);
@@ -726,7 +727,7 @@ namespace O3DE::ProjectManager
 
             // the project_build_path should be in the user settings registry inside the project folder
             AZ::IO::FixedMaxPath projectUserPath(projectPath.toUtf8().constData());
-            projectUserPath /= AZ::SettingsRegistryInterface::DevUserRegistryFolder;
+            projectUserPath /= AZ::SettingsRegistryConstants::DevUserRegistryFolder;
             if (!QDir(projectUserPath.c_str()).exists())
             {
                 return AZ::Failure(QObject::tr("Failed to find the user registry folder %1").arg(projectUserPath.c_str()));

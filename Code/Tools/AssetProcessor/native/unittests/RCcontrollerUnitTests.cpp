@@ -31,8 +31,6 @@ namespace
     constexpr int MaxProcessingWaitTimeMs = 60 * 1000; // Wait up to 1 minute.  Give a generous amount of time to allow for slow CPUs
     const ScanFolderInfo TestScanFolderInfo("c:/samplepath", "sampledisplayname", "samplekey", false, false);
     const AZ::Uuid BuilderUuid = AZ::Uuid::CreateRandom();
-    constexpr int MinRCJobs = 1;
-    constexpr int MaxRCJobs = 4;
 }
 
 class MockRCJob
@@ -202,7 +200,7 @@ void RCcontrollerUnitTests::ConnectCompileGroupSignalsAndSlots(bool& gotCreated,
 
 void RCcontrollerUnitTests::ConnectJobSignalsAndSlots(bool& allJobsCompleted, JobEntry& completedJob)
 {
-    QObject::connect(m_rcController.get(), &RCController::FileCompiled, this, [&](JobEntry entry, AssetBuilderSDK::ProcessJobResponse response)
+    QObject::connect(m_rcController.get(), &RCController::FileCompiled, this, [&](JobEntry entry, [[maybe_unused]] AssetBuilderSDK::ProcessJobResponse response)
         {
             completedJob = entry;
         });
@@ -233,7 +231,7 @@ void RCcontrollerUnitTests::SetUp()
 {
     UnitTest::AssetProcessorUnitTestBase::SetUp();
 
-    m_rcController = AZStd::make_unique<AssetProcessor::RCController>(MinRCJobs, MaxRCJobs);
+    m_rcController = AZStd::make_unique<AssetProcessor::RCController>();
 
     QDir assetRootPath(m_assetDatabaseRequestsHandler->GetAssetRootDir().c_str());
 
